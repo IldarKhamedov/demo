@@ -1,0 +1,10 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:8080/postgres
+    username: postgres
+    password: 280914
+  jpa:
+    show-sql: true
