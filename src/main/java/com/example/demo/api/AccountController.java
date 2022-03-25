@@ -57,19 +57,10 @@ public class AccountController {
         public final int value;
     }
 
-    /*@DeleteMapping("remove")
-    public AccountDeleteResponse deleteAccount(@RequestBody AccountDeleteRequest request){
-        Account account=accountService.getAccount(request.getId());
-        accountService.deleteAccount(request.getId());
-                return new AccountDeleteResponse(
-                account.getId(),
-                account.getValue()
-        );
-    }*/
     @DeleteMapping("remove")
-    public AccountDeleteResponse deleteAccount(@RequestHeader("id") int id) {
-        Account account = accountService.getAccount(id);
-        accountService.deleteAccount(id);
+    public AccountDeleteResponse deleteAccount(@RequestBody AccountDeleteRequest accountDeleteRequest) {
+        Account account = accountService.getAccount(accountDeleteRequest.getId());
+        accountService.deleteAccount(accountDeleteRequest.getId());
         return new AccountDeleteResponse(
                 account.getId(),
                 account.getValue()
@@ -79,6 +70,7 @@ public class AccountController {
     @Data
     public static class AccountDeleteRequest {
         private int id;
+        private int value;
     }
 
     @RequiredArgsConstructor
