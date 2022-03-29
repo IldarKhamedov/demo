@@ -30,6 +30,9 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation group: 'org.testcontainers', name: 'postgresql', version: '1.16.0'
 	testImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.16.0'
+	// https://mvnrepository.com/artifact/com.github.tomakehurst/wiremock-jre8
+	testImplementation group: 'com.github.tomakehurst', name: 'wiremock-jre8', version: '2.32.0'
+
 }
 
 tasks.named('test') {

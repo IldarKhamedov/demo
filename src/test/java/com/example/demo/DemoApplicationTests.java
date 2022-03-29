@@ -1,7 +1,12 @@
 package com.example.demo;
 
+import com.example.demo.api.AccountController;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.util.TestPropertyValues;
@@ -9,6 +14,7 @@ import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.Resource;
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -17,6 +23,10 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.io.File;
+import java.nio.file.Files;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 //integration test
@@ -33,46 +43,58 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class DemoApplicationTests {
 
 	@Container
-	public static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres:13")
-			.withDatabaseName("mydb")
+	public static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres:13")//контейнер для базы данных
+			.withDatabaseName("mydb") //создается и настройки подменяются в application.yaml на "новые настройки"
 			.withUsername("myuser")
 			.withPassword("mypass");
 
-	@Autowired
+	@Autowired//бин
+	@Qualifier("test-rest-template")
 	private RestTemplate restTemplate;
 
-	@Test
-	void testApi() {
+	/*@Value("classpath:json/currency_response.json")//обращение к ресурсу-имитация JSON
+	private Resource myResource;*/
 
-		String body = "{\"id\":1,\"value\":100}";
+	@Value("classpath:json/currency_response.json")//обращение к ресурсу-имитация JSON
+	private Resource myResource;
 
-		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(MediaType.APPLICATION_JSON);
-		HttpEntity<String> requestEntity = new HttpEntity<>(body, headers);// сущность HTTP-запроса или ответа, состоящую из заголовков и тела
-		ResponseEntity<String> responseEntity = restTemplate.exchange("http://localhost:8082/api/v1/account/edit", HttpMethod.PUT, requestEntity, String.class);
+	private static WireMockServer wireMockServer = new WireMockServer(8083);//контейнер для имитации веб-сервиса
 
-		HttpStatus statusCode = responseEntity.getStatusCode();
-		assertEquals(HttpStatus.OK, statusCode);
+	@BeforeAll//стартует до всего
+	public static void init() {
+		wireMockServer.start();
 	}
 
-	/*@Test
-	void testApiInfo() {
-		String body = "{\"id\":1,\"value\":1000}";
+	@Test
+	void testApi() throws Exception {
+		File file = myResource.getFile();
+		String currencyResponse = new String(Files.readAllBytes(file.toPath()));
+
+		wireMockServer.stubFor(get(urlEqualTo("/my-currency-path"))
+				.willReturn(aResponse()
+						.withBody(currencyResponse)));
+
 		//String body = "{\"id\":1}";
+
+		AccountController.AccountInfoRequest body = new AccountController.AccountInfoRequest();
+		body.setId(1);
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
-		HttpEntity<String> requestEntity = new HttpEntity<>(body, headers);// сущность HTTP-запроса или ответа, состоящую из заголовков и тела
-		ResponseEntity<String> responseEntity = restTemplate.exchange("http://localhost:8082/api/v1/account/remove", HttpMethod.DELETE, requestEntity, String.class);
+		HttpEntity<AccountController.AccountInfoRequest> requestEntity = new HttpEntity<AccountController.AccountInfoRequest>(body, headers);// сущность HTTP-запроса или ответа, состоящую из заголовков и тела
+		ResponseEntity<String> responseEntity = restTemplate.exchange("http://localhost:8082/api/v1/account/info", HttpMethod.GET, requestEntity, String.class);
 
 		HttpStatus statusCode = responseEntity.getStatusCode();
 		assertEquals(HttpStatus.OK, statusCode);
-	}*/
+		//assertEquals("{\"id\":1,\"oldValue\":100,\"valueRub\":9567}", responseEntity.getBody());
+	}
+
+
 
 
 	@TestConfiguration
 	public static class MyTestConfig {
-		@Bean
+		@Bean(name = "test-rest-template")
 		public RestTemplate restTemplate(){
 			return new RestTemplate();
 		}
@@ -81,10 +103,10 @@ class DemoApplicationTests {
 	static class PostgreSQLInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
 		public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
 			TestPropertyValues.of(
-					"spring.datasource.url=" + postgreSQLContainer.getJdbcUrl(),
-					"spring.datasource.username=" + postgreSQLContainer.getUsername(),
-					"spring.datasource.password=" + postgreSQLContainer.getPassword()
-			).applyTo(configurableApplicationContext.getEnvironment());
+					"spring.datasource.url=" + postgreSQLContainer.getJdbcUrl(),//назначается новый порт
+					"spring.datasource.username=" + postgreSQLContainer.getUsername(),//имя из .withUsername("myuser")
+					"spring.datasource.password=" + postgreSQLContainer.getPassword()//пароль из .withPassword("mypass");
+			).applyTo(configurableApplicationContext.getEnvironment());  //"новые настройки"
 		}
 	}
 

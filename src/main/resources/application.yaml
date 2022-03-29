@@ -8,3 +8,10 @@ spring:
     password: 280914
   jpa:
     show-sql: true
+
+application:
+  currency_url: https://www.cbr-xml-daily.ru/latest.js
+
+
+
+

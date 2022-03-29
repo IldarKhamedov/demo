@@ -1,11 +1,12 @@
 package com.example.demo.api;
 
-import com.example.demo.model.Account;
 import com.example.demo.model.AccountService;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("api/v1/account")
@@ -17,23 +18,51 @@ public class AccountController {
     @GetMapping("info")
     public AccountInfoResponse accountInfo(@RequestBody AccountInfoRequest request) {
         int id = request.id;
-        Account account = accountService.getAccount(id);
+        AccountService.AccountDto account = accountService.getAccount(id);
         return new AccountInfoResponse(
                 account.getId(),
-                account.getValue()
+                account.getUsdValue(),
+                account.getRubValue()
         );
     }
+/*
+    @GetMapping("infoJson")
+    public AccountInfoJsonResponse accountInfoJson(@RequestBody AccountInfoRequest request) {
+        int id = request.id;
+        AccountService.AccountJsonDto account = accountService.getAccountJson(id);
+        return new AccountInfoJsonResponse(
+                account.getId(),
+                account.getUsdValue(),
+                account.getRubValue()
+        );
+    }*/
 
     @Data
     public static class AccountInfoRequest {
         private int id;
+        private int value;
+
+    }
+
+    @Data
+    public static class AccountInfoJsonRequest {
+        private int id;
+        private int value;
     }
 
     @RequiredArgsConstructor
     public static class AccountInfoResponse {
         public final int id;
-        public final int value;
+        public final BigDecimal value;
+        public final BigDecimal rubValue;
     }
+    /*
+    @RequiredArgsConstructor
+    public static class AccountInfoJsonResponse {
+        public final int id;
+        public final Double value;
+        public final Double rubValue;
+    }*/
 
     @PostMapping("addAccount")
     public AccountAddResponse addAccount(@RequestBody AccountAddRequest addRequest) {
@@ -58,13 +87,8 @@ public class AccountController {
     }
 
     @DeleteMapping("remove")
-    public AccountDeleteResponse deleteAccount(@RequestBody AccountDeleteRequest accountDeleteRequest) {
-        Account account = accountService.getAccount(accountDeleteRequest.getId());
+    public void deleteAccount(@RequestBody AccountDeleteRequest accountDeleteRequest) {
         accountService.deleteAccount(accountDeleteRequest.getId());
-        return new AccountDeleteResponse(
-                account.getId(),
-                account.getValue()
-        );
     }
 
     @Data
@@ -79,16 +103,16 @@ public class AccountController {
         public final int value;
     }
 
-    @PutMapping("edit")
+   /* @PutMapping("edit")
     public AccountEditResponse editAccount(@RequestBody AccountAddRequest request) {
-        AccountEditResponse accountEditResponse = new AccountEditResponse();
+       AccountEditResponse accountEditResponse = new AccountEditResponse();
         Account account = accountService.getAccount(request.getId());
         accountEditResponse.setId(request.getId());
         accountEditResponse.setOldValue(account.getValue());
-        accountEditResponse.setNewVvalue(request.getValue());
+        accountEditResponse.setNewValue(request.getValue());
         accountService.editAccount(request.getId(), request.getValue());
         return accountEditResponse;
-    }
+    }*/
 
     @Data
     public static class AccountEditRequest {
@@ -102,7 +126,7 @@ public class AccountController {
     public static class AccountEditResponse {
         public int id;
         public int oldValue;
-        public int newVvalue;
+        public int newValue;
     }
 
 }
